@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>Face-Triggered Message</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101827; color: #eef2ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 1.25rem; }
+    main { width: min(100%, 760px); }
+    h1 { margin-bottom: .35rem; }
+    .intro, .privacy { color: #c4cede; line-height: 1.5; }
+    .panel { background: #1b2738; border: 1px solid #36445a; border-radius: 14px; padding: 1.25rem; margin-top: 1rem; }
+    label { display: block; font-weight: 650; margin-bottom: .5rem; }
+    textarea { width: 100%; min-height: 5rem; resize: vertical; font: inherit; padding: .8rem; border-radius: 8px; border: 1px solid #65748b; background: #0e1725; color: inherit; }
+    button { font: inherit; font-weight: 700; padding: .7rem 1rem; border: 0; border-radius: 8px; cursor: pointer; margin: .8rem .5rem 0 0; }
+    button:focus-visible, textarea:focus-visible { outline: 3px solid #82cfff; outline-offset: 2px; }
+    #start { background: #8bd3ff; color: #102033; }
+    #stop { background: #36445a; color: white; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .camera { position: relative; margin-top: 1rem; background: #080d14; border-radius: 10px; overflow: hidden; min-height: 180px; display: grid; place-items: center; }
+    video { display: block; width: 100%; max-height: 55vh; object-fit: cover; transform: scaleX(-1); }
+    #notice { position: absolute; inset: auto 1rem 1rem; padding: 1rem; border-radius: 10px; background: #fff; color: #101827; text-align: center; font-size: clamp(1rem, 3vw, 1.5rem); font-weight: 750; }
+    #status { min-height: 1.5em; margin: .8rem 0 0; }
+    .privacy { font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Face-Triggered Message</h1>
+    <p class="intro">A simple, consent-based demo: when the camera detects a face, it displays your message on this screen.</p>
+
+    <section class="panel" aria-labelledby="settings-heading">
+      <h2 id="settings-heading">Your message</h2>
+      <label for="message">Message to display when a face is detected</label>
+      <textarea id="message" maxlength="240">Hello! You are on camera. Please let the operator know if you have questions.</textarea>
+      <div>
+        <button id="start" type="button">Enable camera</button>
+        <button id="stop" type="button" disabled>Stop camera</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Camera is off. Choose Enable camera to begin.</p>
+      <div class="camera">
+        <video id="video" autoplay muted playsinline aria-label="Live camera preview"></video>
+        <div id="notice" role="status" aria-live="assertive" hidden></div>
+      </div>
+    </section>
+
+    <p class="privacy"><strong>Privacy:</strong> This demo only detects whether a face is present; it does not identify who anyone is, compare faces, or infer criminality. Camera frames are processed in your browser and are not recorded or uploaded. The message is shown only on this device; it is not sent to anyone. Use only with clear notice and the camera user's consent.</p>
+  </main>
+  <script>
+    (() => {
+      const video = document.querySelector('#video');
+      const message = document.querySelector('#message');
+      const notice = document.querySelector('#notice');
+      const status = document.querySelector('#status');
+      const startButton = document.querySelector('#start');
+      const stopButton = document.querySelector('#stop');
+      let stream = null;
+      let timer = null;
+      let detector = null;
+      let detecting = false;
+
+      function stopCamera() {
+        detecting = false;
+        if (timer !== null) clearTimeout(timer);
+        timer = null;
+        if (stream) stream.getTracks().forEach(track => track.stop());
+        stream = null;
+        video.srcObject = null;
+        notice.hidden = true;
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        status.textContent = 'Camera is off.';
+      }
+
+      async function scan() {
+        if (!detecting) return;
+        try {
+          const faces = await detector.detect(video);
+          if (!detecting) return;
+          if (faces.length > 0) {
+            notice.textContent = message.value.trim() || 'Hello!';
+            notice.hidden = false;
+            status.textContent = 'Face detected. Your message is displayed on this device.';
+          } else {
+            notice.hidden = true;
+            status.textContent = 'Camera is on. No face detected.';
+          }
+        } catch (error) {
+          status.textContent = 'Face detection stopped: ' + error.message;
+          stopCamera();
+          return;
+        }
+        timer = setTimeout(scan, 350);
+      }
+
+      startButton.addEventListener('click', async () => {
+        if (!('FaceDetector' in window)) {
+          status.textContent = 'This browser does not support the Face Detection API. Try a supported Chromium-based browser with the feature enabled.';
+          return;
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          status.textContent = 'Camera access is unavailable. Use HTTPS or localhost in a browser that supports camera access.';
+          return;
+        }
+        startButton.disabled = true;
+        status.textContent = 'Requesting camera permission…';
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+          video.srcObject = stream;
+          await video.play();
+          detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+          detecting = true;
+          stopButton.disabled = false;
+          status.textContent = 'Camera is on. Face detection runs locally in your browser.';
+          scan();
+        } catch (error) {
+          stopCamera();
+          status.textContent = 'Could not start the camera: ' + error.message;
+        }
+      });
+
+      stopButton.addEventListener('click', stopCamera);
+      window.addEventListener('pagehide', stopCamera);
+    })();
+  </script>
+</body>
+</html>
