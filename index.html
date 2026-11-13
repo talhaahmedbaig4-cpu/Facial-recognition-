@@ -3,127 +3,189 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101827">
-  <title>Face-Triggered Message</title>
+  <meta name="theme-color" content="#f5f7fb">
+  <title>My To-do List</title>
   <style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101827; color: #eef2ff; }
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #172033;
+      background: #f5f7fb;
+      font-synthesis: none;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 1.25rem; }
-    main { width: min(100%, 760px); }
-    h1 { margin-bottom: .35rem; }
-    .intro, .privacy { color: #c4cede; line-height: 1.5; }
-    .panel { background: #1b2738; border: 1px solid #36445a; border-radius: 14px; padding: 1.25rem; margin-top: 1rem; }
-    label { display: block; font-weight: 650; margin-bottom: .5rem; }
-    textarea { width: 100%; min-height: 5rem; resize: vertical; font: inherit; padding: .8rem; border-radius: 8px; border: 1px solid #65748b; background: #0e1725; color: inherit; }
-    button { font: inherit; font-weight: 700; padding: .7rem 1rem; border: 0; border-radius: 8px; cursor: pointer; margin: .8rem .5rem 0 0; }
-    button:focus-visible, textarea:focus-visible { outline: 3px solid #82cfff; outline-offset: 2px; }
-    #start { background: #8bd3ff; color: #102033; }
-    #stop { background: #36445a; color: white; }
-    button:disabled { opacity: .55; cursor: not-allowed; }
-    .camera { position: relative; margin-top: 1rem; background: #080d14; border-radius: 10px; overflow: hidden; min-height: 180px; display: grid; place-items: center; }
-    video { display: block; width: 100%; max-height: 55vh; object-fit: cover; transform: scaleX(-1); }
-    #notice { position: absolute; inset: auto 1rem 1rem; padding: 1rem; border-radius: 10px; background: #fff; color: #101827; text-align: center; font-size: clamp(1rem, 3vw, 1.5rem); font-weight: 750; }
-    #status { min-height: 1.5em; margin: .8rem 0 0; }
-    .privacy { font-size: .92rem; }
+    body { margin: 0; min-height: 100vh; padding: 3rem 1rem; }
+    main { width: min(100%, 650px); margin: 0 auto; }
+    header { margin-bottom: 1.5rem; }
+    h1 { margin: 0; font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: -.04em; }
+    .subtitle { margin: .5rem 0 0; color: #637087; }
+    .app { overflow: hidden; background: #fff; border: 1px solid #e1e6ef; border-radius: 16px; box-shadow: 0 16px 40px rgb(27 43 70 / 8%); }
+    form { display: flex; gap: .65rem; padding: 1rem; border-bottom: 1px solid #edf0f5; }
+    input, button { font: inherit; }
+    #task-input { flex: 1; min-width: 0; padding: .8rem .9rem; border: 1px solid #cbd3df; border-radius: 9px; color: inherit; }
+    button { cursor: pointer; }
+    #add-button { padding: .75rem 1rem; color: #fff; background: #4258d0; border: 0; border-radius: 9px; font-weight: 700; }
+    #add-button:hover { background: #3549b7; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #90a5ff; outline-offset: 2px; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .9rem 1rem; }
+    .filters { display: flex; gap: .35rem; }
+    .filter { padding: .4rem .65rem; color: #566176; background: transparent; border: 1px solid transparent; border-radius: 7px; }
+    .filter[aria-pressed="true"] { color: #3549b7; background: #eef0ff; border-color: #dce0ff; font-weight: 700; }
+    #clear-completed { padding: .4rem 0; color: #637087; background: transparent; border: 0; text-decoration: underline; text-underline-offset: 3px; }
+    #clear-completed:hover { color: #25324a; }
+    #task-list { list-style: none; padding: 0; margin: 0; }
+    .task { display: flex; align-items: center; gap: .8rem; padding: .95rem 1rem; border-top: 1px solid #edf0f5; }
+    .task input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin: 0; accent-color: #4258d0; flex: 0 0 auto; }
+    .task-text { flex: 1; overflow-wrap: anywhere; }
+    .task.done .task-text { color: #8993a4; text-decoration: line-through; }
+    .delete-button { padding: .35rem .5rem; color: #788398; background: transparent; border: 0; border-radius: 6px; font-size: 1.2rem; line-height: 1; }
+    .delete-button:hover { color: #a12c3a; background: #fff0f1; }
+    #empty-state { padding: 2.2rem 1rem; color: #788398; text-align: center; }
+    #status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 440px) { body { padding: 2rem .75rem; } form { flex-direction: column; } #add-button { width: 100%; } .toolbar { align-items: flex-start; flex-direction: column; } }
   </style>
 </head>
 <body>
   <main>
-    <h1>Face-Triggered Message</h1>
-    <p class="intro">A simple, consent-based demo: when the camera detects a face, it displays your message on this screen.</p>
-
-    <section class="panel" aria-labelledby="settings-heading">
-      <h2 id="settings-heading">Your message</h2>
-      <label for="message">Message to display when a face is detected</label>
-      <textarea id="message" maxlength="240">Hello! You are on camera. Please let the operator know if you have questions.</textarea>
-      <div>
-        <button id="start" type="button">Enable camera</button>
-        <button id="stop" type="button" disabled>Stop camera</button>
+    <header>
+      <h1>My To-do List</h1>
+      <p class="subtitle">A simple list that stays saved on this device.</p>
+    </header>
+    <section class="app" aria-label="To-do list">
+      <form id="task-form">
+        <label for="task-input" class="visually-hidden" hidden>New task</label>
+        <input id="task-input" type="text" maxlength="200" placeholder="What needs to get done?" autocomplete="off" required>
+        <button id="add-button" type="submit">Add task</button>
+      </form>
+      <div class="toolbar">
+        <div class="filters" role="group" aria-label="Filter tasks">
+          <button class="filter" type="button" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter" type="button" data-filter="active" aria-pressed="false">Active</button>
+          <button class="filter" type="button" data-filter="completed" aria-pressed="false">Completed</button>
+        </div>
+        <button id="clear-completed" type="button">Clear completed</button>
       </div>
-      <p id="status" role="status" aria-live="polite">Camera is off. Choose Enable camera to begin.</p>
-      <div class="camera">
-        <video id="video" autoplay muted playsinline aria-label="Live camera preview"></video>
-        <div id="notice" role="status" aria-live="assertive" hidden></div>
-      </div>
+      <ul id="task-list" aria-label="Tasks"></ul>
+      <div id="empty-state" hidden></div>
+      <span id="status" role="status" aria-live="polite"></span>
     </section>
-
-    <p class="privacy"><strong>Privacy:</strong> This demo only detects whether a face is present; it does not identify who anyone is, compare faces, or infer criminality. Camera frames are processed in your browser and are not recorded or uploaded. The message is shown only on this device; it is not sent to anyone. Use only with clear notice and the camera user's consent.</p>
   </main>
   <script>
     (() => {
-      const video = document.querySelector('#video');
-      const message = document.querySelector('#message');
-      const notice = document.querySelector('#notice');
+      const STORAGE_KEY = 'simple-todo-tasks-v1';
+      const form = document.querySelector('#task-form');
+      const input = document.querySelector('#task-input');
+      const list = document.querySelector('#task-list');
+      const emptyState = document.querySelector('#empty-state');
       const status = document.querySelector('#status');
-      const startButton = document.querySelector('#start');
-      const stopButton = document.querySelector('#stop');
-      let stream = null;
-      let timer = null;
-      let detector = null;
-      let detecting = false;
+      const clearButton = document.querySelector('#clear-completed');
+      const filterButtons = [...document.querySelectorAll('.filter')];
+      let currentFilter = 'all';
+      let tasks = loadTasks();
 
-      function stopCamera() {
-        detecting = false;
-        if (timer !== null) clearTimeout(timer);
-        timer = null;
-        if (stream) stream.getTracks().forEach(track => track.stop());
-        stream = null;
-        video.srcObject = null;
-        notice.hidden = true;
-        startButton.disabled = false;
-        stopButton.disabled = true;
-        status.textContent = 'Camera is off.';
+      function loadTasks() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          return Array.isArray(parsed) ? parsed.filter(task =>
+            task && typeof task.id === 'string' && typeof task.text === 'string' && typeof task.completed === 'boolean'
+          ) : [];
+        } catch {
+          status.textContent = 'Saved tasks could not be read. You can still add tasks in this session.';
+          return [];
+        }
       }
 
-      async function scan() {
-        if (!detecting) return;
+      function saveTasks() {
         try {
-          const faces = await detector.detect(video);
-          if (!detecting) return;
-          if (faces.length > 0) {
-            notice.textContent = message.value.trim() || 'Hello!';
-            notice.hidden = false;
-            status.textContent = 'Face detected. Your message is displayed on this device.';
-          } else {
-            notice.hidden = true;
-            status.textContent = 'Camera is on. No face detected.';
-          }
-        } catch (error) {
-          status.textContent = 'Face detection stopped: ' + error.message;
-          stopCamera();
-          return;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+          return true;
+        } catch {
+          status.textContent = 'Could not save tasks. Check that browser storage is enabled.';
+          return false;
         }
-        timer = setTimeout(scan, 350);
       }
 
-      startButton.addEventListener('click', async () => {
-        if (!('FaceDetector' in window)) {
-          status.textContent = 'This browser does not support the Face Detection API. Try a supported Chromium-based browser with the feature enabled.';
-          return;
+      function visibleTasks() {
+        if (currentFilter === 'active') return tasks.filter(task => !task.completed);
+        if (currentFilter === 'completed') return tasks.filter(task => task.completed);
+        return tasks;
+      }
+
+      function render() {
+        list.replaceChildren();
+        const shown = visibleTasks();
+        for (const task of shown) {
+          const item = document.createElement('li');
+          item.className = `task${task.completed ? ' done' : ''}`;
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = task.completed;
+          checkbox.setAttribute('aria-label', `${task.completed ? 'Mark active' : 'Mark completed'}: ${task.text}`);
+          checkbox.addEventListener('change', () => {
+            tasks = tasks.map(entry => entry.id === task.id ? { ...entry, completed: checkbox.checked } : entry);
+            saveTasks();
+            render();
+            status.textContent = checkbox.checked ? 'Task completed.' : 'Task marked active.';
+          });
+
+          const text = document.createElement('span');
+          text.className = 'task-text';
+          text.textContent = task.text;
+
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'delete-button';
+          remove.textContent = '×';
+          remove.setAttribute('aria-label', `Delete task: ${task.text}`);
+          remove.addEventListener('click', () => {
+            tasks = tasks.filter(entry => entry.id !== task.id);
+            saveTasks();
+            render();
+            status.textContent = 'Task deleted.';
+          });
+
+          item.append(checkbox, text, remove);
+          list.append(item);
         }
-        if (!navigator.mediaDevices?.getUserMedia) {
-          status.textContent = 'Camera access is unavailable. Use HTTPS or localhost in a browser that supports camera access.';
-          return;
+        emptyState.hidden = shown.length > 0;
+        if (!shown.length) {
+          emptyState.textContent = tasks.length ? 'No tasks in this filter.' : 'No tasks yet. Add one above to get started.';
         }
-        startButton.disabled = true;
-        status.textContent = 'Requesting camera permission…';
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-          video.srcObject = stream;
-          await video.play();
-          detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-          detecting = true;
-          stopButton.disabled = false;
-          status.textContent = 'Camera is on. Face detection runs locally in your browser.';
-          scan();
-        } catch (error) {
-          stopCamera();
-          status.textContent = 'Could not start the camera: ' + error.message;
+        for (const button of filterButtons) {
+          button.setAttribute('aria-pressed', String(button.dataset.filter === currentFilter));
         }
+        clearButton.disabled = !tasks.some(task => task.completed);
+        clearButton.style.opacity = clearButton.disabled ? '.5' : '1';
+      }
+
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        tasks.unshift({ id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`, text, completed: false });
+        saveTasks();
+        input.value = '';
+        currentFilter = 'all';
+        render();
+        input.focus();
+        status.textContent = 'Task added.';
       });
 
-      stopButton.addEventListener('click', stopCamera);
-      window.addEventListener('pagehide', stopCamera);
+      filterButtons.forEach(button => button.addEventListener('click', () => {
+        currentFilter = button.dataset.filter;
+        render();
+      }));
+
+      clearButton.addEventListener('click', () => {
+        const count = tasks.filter(task => task.completed).length;
+        tasks = tasks.filter(task => !task.completed);
+        saveTasks();
+        render();
+        status.textContent = `${count} completed ${count === 1 ? 'task' : 'tasks'} cleared.`;
+      });
+
+      render();
     })();
   </script>
 </body>
